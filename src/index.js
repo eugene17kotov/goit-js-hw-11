@@ -5,13 +5,9 @@ import { Notify } from 'notiflix';
 import 'simplelightbox/dist/simple-lightbox.min.css';
 import { fetchImages } from './js/fetchImages';
 
-// Tasks
+// Task
 
-// - повесить слушатель событий сабмит на форму
-//     - создать запрос на бекенд при сабмите формы
-//         - добавить пагинацию
-//             - создать рендер разметки фотографий
-//                 - при новом запросе полностью очищать разметку
+// переписать на Async/Await
 
 const formRef = document.querySelector('#search-form');
 const galleryRef = document.querySelector('.gallery');
@@ -19,37 +15,67 @@ const scrollGuardRef = document.querySelector('.scroll-guard');
 
 let lightboxGallery = null;
 let page = 1;
+const per_page = 40;
 let lastPage = 0;
 let input = '';
+const options = {
+  rootMargin: '200px',
+  threshold: 1.0,
+};
+
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(entry => {
+    if (input === '') {
+      return;
+    }
+
+    if (page === lastPage) {
+      setTimeout(() => {
+        endScrollMessage();
+      }, 1000);
+      return;
+    }
+
+    if (entry.isIntersecting) {
+      page += 1;
+
+      fetchOnScroll(input, page);
+    }
+  });
+}, options);
+
+observer.observe(scrollGuardRef);
 
 formRef.addEventListener('submit', onSubmitForm);
 
 function onSubmitForm(e) {
   e.preventDefault();
 
-  // input = '';
   page = 1;
   input = e.target.elements.searchQuery.value;
 
   if (input === '') {
-    Notify.failure(
-      'Sorry, there are no images matching your search query. Please try again.'
-    );
+    failureMessage();
     return;
   }
 
+  fetchOnSubmit(input, page);
+}
+
+function fetchOnSubmit(input, page) {
   fetchImages(input, page)
     .then(images => {
+      const imagesArray = images.hits;
+      const imagesCount = images.totalHits;
+
       galleryRef.innerHTML = '';
 
-      renderImagesMarkup(images.hits);
+      renderImagesMarkup(imagesArray);
 
-      lastPage = Math.ceil(images.totalHits / 40);
-
-      page += 1;
+      lastPage = Math.ceil(imagesCount / per_page);
 
       if (lastPage) {
-        Notify.success(`Hooray! We found ${images.totalHits} images.`);
+        successMessage(imagesCount);
       }
 
       createLightBox();
@@ -58,13 +84,25 @@ function onSubmitForm(e) {
       slowScroll();
     })
     .catch(error => {
-      Notify.failure(
-        'Sorry, there are no images matching your search query. Please try again.'
-      );
+      failureMessage();
     })
     .finally(() => {
       formRef.reset();
     });
+}
+
+function fetchOnScroll(input, page) {
+  fetchImages(input, page)
+    .then(images => {
+      const imagesArray = images.hits;
+
+      renderAdditionalImagesMarkup(imagesArray);
+
+      lightboxGallery.refresh();
+
+      console.log(page);
+    })
+    .catch(error => failureMessage());
 }
 
 function renderImagesMarkup(imagesArray) {
@@ -166,38 +204,16 @@ function createLightBox() {
   });
 }
 
-const options = {
-  rootMargin: '200px',
-  threshold: 1.0,
-};
+function failureMessage() {
+  Notify.failure(
+    'Sorry, there are no images matching your search query. Please try again.'
+  );
+}
 
-const observer = new IntersectionObserver(entries => {
-  entries.forEach(entry => {
-    if (input === '') {
-      return;
-    }
+function successMessage(imagesCount) {
+  Notify.success(`Hooray! We found ${imagesCount} images.`);
+}
 
-    if (page === lastPage) {
-      setTimeout(() => {
-        Notify.info(
-          "We're sorry, but you've reached the end of search results."
-        );
-      }, 700);
-      return;
-    }
-
-    if (entry.isIntersecting) {
-      fetchImages(input, page)
-        .then(images => {
-          renderAdditionalImagesMarkup(images.hits);
-
-          lightboxGallery.refresh();
-
-          page += 1;
-        })
-        .catch(error => console.log(error));
-    }
-  });
-}, options);
-
-observer.observe(scrollGuardRef);
+function endScrollMessage() {
+  Notify.info("We're sorry, but you've reached the end of search results.");
+}
