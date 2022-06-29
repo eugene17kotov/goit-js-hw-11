@@ -8,7 +8,6 @@ import { fetchImages } from './js/fetchImages';
 import { successMessage } from './js/messages';
 import { failureMessage } from './js/messages';
 import { endScrollMessage } from './js/messages';
-import { createLightBox } from './js/createLightBox';
 import { slowScrollOnSearch } from './js/scroll';
 import { slowScrollOnAddPhotos } from './js/scroll';
 import { renderImagesMarkup } from './js/markup-render';
@@ -18,7 +17,10 @@ const formRef = document.querySelector('#search-form');
 const galleryRef = document.querySelector('.gallery');
 const scrollGuardRef = document.querySelector('.scroll-guard');
 
-let lightboxGallery = null;
+const lightboxGallery = new SimpleLightbox('.gallery a', {
+  captionsData: 'alt',
+  captionDelay: 250,
+});
 let page = 1;
 const per_page = 40;
 let lastPage = 0;
@@ -41,46 +43,51 @@ function onSubmitForm(e) {
 }
 
 function fetchOnSubmit(input, page) {
-  fetchImages(input, page)
-    .then(images => {
-      const imagesArray = images.hits;
-      const imagesCount = images.totalHits;
+  try {
+    fetchImages(input, page)
+      .then(images => {
+        const imagesArray = images.hits;
+        const imagesCount = images.totalHits;
 
-      galleryRef.innerHTML = '';
+        galleryRef.innerHTML = '';
 
-      renderImagesMarkup(imagesArray);
+        renderImagesMarkup(imagesArray, galleryRef);
 
-      lastPage = Math.ceil(imagesCount / per_page);
+        lastPage = Math.ceil(imagesCount / per_page);
 
-      if (lastPage) {
-        successMessage(imagesCount);
-      }
+        if (lastPage) {
+          successMessage(imagesCount);
+        }
 
-      createLightBox();
+        slowScrollOnSearch();
 
-      // Плавная прокрутка страницы
-      slowScrollOnSearch();
-    })
-    .catch(error => {
-      failureMessage();
-    })
-    .finally(() => {
-      formRef.reset();
-    });
+        lightboxGallery.refresh();
+      })
+
+      .finally(() => {
+        formRef.reset();
+      });
+  } catch (error) {
+    console.log(error);
+    failureMessage();
+  }
 }
 
 function fetchOnScroll(input, page) {
-  fetchImages(input, page)
-    .then(images => {
+  try {
+    fetchImages(input, page).then(images => {
       const imagesArray = images.hits;
 
-      renderAdditionalImagesMarkup(imagesArray);
+      renderAdditionalImagesMarkup(imagesArray, galleryRef);
 
       slowScrollOnAddPhotos();
 
       lightboxGallery.refresh();
-    })
-    .catch(error => failureMessage());
+    });
+  } catch (error) {
+    console.log(error);
+    failureMessage();
+  }
 }
 
 const options = {

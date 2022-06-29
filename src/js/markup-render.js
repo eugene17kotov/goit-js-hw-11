@@ -1,4 +1,4 @@
-export function renderImagesMarkup(imagesArray) {
+export function renderImagesMarkup(imagesArray, galleryRef) {
   galleryRef.innerHTML = imagesArray
     .map(
       ({
@@ -37,7 +37,7 @@ export function renderImagesMarkup(imagesArray) {
     .join('');
 }
 
-export function renderAdditionalImagesMarkup(imagesArray) {
+export function renderAdditionalImagesMarkup(imagesArray, galleryRef) {
   galleryRef.insertAdjacentHTML(
     'beforeend',
     imagesArray
