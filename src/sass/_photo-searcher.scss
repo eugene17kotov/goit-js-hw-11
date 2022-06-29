@@ -123,9 +123,8 @@ p {
   font-size: 16px;
   line-height: 1.87;
   letter-spacing: 0.06em;
-
-  color: $accentBgColor;
-  background-color: $whiteColor;
+  color: $whiteColor;
+  background-color: $accentColor;
 
   border: 1px solid transparent;
   border-radius: 15px;
@@ -140,7 +139,7 @@ p {
 
   &:hover,
   &:focus {
-    color: $whiteColor;
-    background-color: $accentColor;
+    color: $accentBgColor;
+    background-color: $whiteColor;
   }
 }

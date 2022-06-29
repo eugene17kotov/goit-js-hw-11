@@ -3,11 +3,16 @@ import SimpleLightbox from 'simplelightbox';
 import { Notify } from 'notiflix';
 // Дополнительный импорт стилей
 import 'simplelightbox/dist/simple-lightbox.min.css';
+
 import { fetchImages } from './js/fetchImages';
-
-// Task
-
-// переписать на Async/Await
+import { successMessage } from './js/messages';
+import { failureMessage } from './js/messages';
+import { endScrollMessage } from './js/messages';
+import { createLightBox } from './js/createLightBox';
+import { slowScrollOnSearch } from './js/scroll';
+import { slowScrollOnAddPhotos } from './js/scroll';
+import { renderImagesMarkup } from './js/markup-render';
+import { renderAdditionalImagesMarkup } from './js/markup-render';
 
 const formRef = document.querySelector('#search-form');
 const galleryRef = document.querySelector('.gallery');
@@ -18,33 +23,6 @@ let page = 1;
 const per_page = 40;
 let lastPage = 0;
 let input = '';
-const options = {
-  rootMargin: '200px',
-  threshold: 1.0,
-};
-
-const observer = new IntersectionObserver(entries => {
-  entries.forEach(entry => {
-    if (input === '') {
-      return;
-    }
-
-    if (page === lastPage) {
-      setTimeout(() => {
-        endScrollMessage();
-      }, 1000);
-      return;
-    }
-
-    if (entry.isIntersecting) {
-      page += 1;
-
-      fetchOnScroll(input, page);
-    }
-  });
-}, options);
-
-observer.observe(scrollGuardRef);
 
 formRef.addEventListener('submit', onSubmitForm);
 
@@ -81,7 +59,7 @@ function fetchOnSubmit(input, page) {
       createLightBox();
 
       // Плавная прокрутка страницы
-      slowScroll();
+      slowScrollOnSearch();
     })
     .catch(error => {
       failureMessage();
@@ -98,122 +76,37 @@ function fetchOnScroll(input, page) {
 
       renderAdditionalImagesMarkup(imagesArray);
 
-      lightboxGallery.refresh();
+      slowScrollOnAddPhotos();
 
-      console.log(page);
+      lightboxGallery.refresh();
     })
     .catch(error => failureMessage());
 }
 
-function renderImagesMarkup(imagesArray) {
-  galleryRef.innerHTML = imagesArray
-    .map(
-      ({
-        webformatURL,
-        largeImageURL,
-        tags,
-        likes,
-        views,
-        comments,
-        downloads,
-      }) => `
-<div class="gallery__item">                   
-  <a class="gallery__link" href=${largeImageURL}>
-      <img class="gallery__image" src='${webformatURL}' alt='${tags}' loading="lazy" />
-  </a>
-    <div class="info">
-      <p class="info-item">
-        <b>Likes</b>
-        ${likes}
-      </p>
-      <p class="info-item">
-        <b>Views</b>
-        ${views}
-      </p>
-      <p class="info-item">
-        <b>Comments</b>
-        ${comments}
-      </p>
-      <p class="info-item">
-        <b>Downloads</b>
-        ${downloads}
-      </p>
-  </div>
-</div>`
-    )
-    .join('');
-}
+const options = {
+  rootMargin: '200px',
+  threshold: 1.0,
+};
 
-function renderAdditionalImagesMarkup(imagesArray) {
-  galleryRef.insertAdjacentHTML(
-    'beforeend',
-    imagesArray
-      .map(
-        ({
-          webformatURL,
-          largeImageURL,
-          tags,
-          likes,
-          views,
-          comments,
-          downloads,
-        }) => `
-<div class="gallery__item">                   
-  <a class="gallery__link" href=${largeImageURL}>
-      <img class="gallery__image" src='${webformatURL}' alt='${tags}' loading="lazy" />
-  </a>
-    <div class="info">
-      <p class="info-item">
-        <b>Likes</b>
-        ${likes}
-      </p>
-      <p class="info-item">
-        <b>Views</b>
-        ${views}
-      </p>
-      <p class="info-item">
-        <b>Comments</b>
-        ${comments}
-      </p>
-      <p class="info-item">
-        <b>Downloads</b>
-        ${downloads}
-      </p>
-  </div>
-</div>`
-      )
-      .join('')
-  );
-}
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(entry => {
+    if (input === '') {
+      return;
+    }
 
-function slowScroll() {
-  const { height: cardHeight } = document
-    .querySelector('.gallery')
-    .firstElementChild.getBoundingClientRect();
+    if (page === lastPage) {
+      setTimeout(() => {
+        endScrollMessage();
+      }, 1000);
+      return;
+    }
 
-  window.scrollBy({
-    top: cardHeight * 2,
-    behavior: 'smooth',
+    if (entry.isIntersecting) {
+      page += 1;
+
+      fetchOnScroll(input, page);
+    }
   });
-}
+}, options);
 
-function createLightBox() {
-  lightboxGallery = new SimpleLightbox('.gallery a', {
-    captionsData: 'alt',
-    captionDelay: 250,
-  });
-}
-
-function failureMessage() {
-  Notify.failure(
-    'Sorry, there are no images matching your search query. Please try again.'
-  );
-}
-
-function successMessage(imagesCount) {
-  Notify.success(`Hooray! We found ${imagesCount} images.`);
-}
-
-function endScrollMessage() {
-  Notify.info("We're sorry, but you've reached the end of search results.");
-}
+observer.observe(scrollGuardRef);
