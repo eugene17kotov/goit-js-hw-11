@@ -1,3 +1,5 @@
+import { Notify } from 'notiflix';
+
 export function failureMessage() {
   Notify.failure(
     'Sorry, there are no images matching your search query. Please try again.'
