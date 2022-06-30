@@ -32,7 +32,7 @@ function onSubmitForm(e) {
   e.preventDefault();
 
   page = 1;
-  input = e.target.elements.searchQuery.value;
+  input = e.target.elements.searchQuery.value.trim();
 
   if (input === '') {
     failureMessage();
@@ -51,13 +51,16 @@ function fetchOnSubmit(input, page) {
 
         galleryRef.innerHTML = '';
 
+        if (!imagesCount) {
+          failureMessage();
+          return;
+        }
+
         renderImagesMarkup(imagesArray, galleryRef);
 
         lastPage = Math.ceil(imagesCount / per_page);
 
-        if (lastPage) {
-          successMessage(imagesCount);
-        }
+        successMessage(imagesCount);
 
         slowScrollOnSearch();
 
@@ -77,6 +80,11 @@ function fetchOnScroll(input, page) {
   try {
     fetchImages(input, page).then(images => {
       const imagesArray = images.hits;
+      const imagesCount = images.totalHits;
+
+      if (!imagesCount) {
+        return;
+      }
 
       renderAdditionalImagesMarkup(imagesArray, galleryRef);
 
@@ -105,6 +113,7 @@ const observer = new IntersectionObserver(entries => {
       setTimeout(() => {
         endScrollMessage();
       }, 1000);
+      lastPage = 0;
       return;
     }
 
